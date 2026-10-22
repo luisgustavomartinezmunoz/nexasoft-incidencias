@@ -3,29 +3,45 @@ import '../model/incidencia.dart';
 
 class GestorIncidencias {
   final AlmacenLocal datos = AlmacenLocal();
+
   List<Incidencia> incidencias = [];
-  int cantidadPendientes = 0;
 
   Future<void> iniciar() async {
     incidencias = await datos.leer();
-    cantidadPendientes =
-        incidencias.where((x) => x.estado == 'Pendiente').length;
   }
 
   List<Incidencia> buscar(String texto) {
-    if (texto.trim().isEmpty) return incidencias;
-    return incidencias.where((x) => x.titulo.contains(texto)).toList();
+    return filtrar(texto: texto);
+  }
+
+  List<Incidencia> filtrar({
+    String texto = '',
+    String estado = 'Todos',
+    String prioridad = 'Todas',
+  }) {
+    final consulta = texto.trim().toLowerCase();
+    return incidencias.where((x) {
+      final coincideTexto = consulta.isEmpty ||
+          x.titulo.toLowerCase().contains(consulta) ||
+          x.descripcion.toLowerCase().contains(consulta);
+      final coincideEstado = estado == 'Todos' || x.estado == estado;
+      final coincidePrioridad =
+          prioridad == 'Todas' || x.prioridad == prioridad;
+      return coincideTexto && coincideEstado && coincidePrioridad;
+    }).toList();
   }
 
   Incidencia? porId(String id) {
     for (var x in incidencias) {
-      if (x.id == id) return x;
+      if (x.id == id) {
+        return x;
+      }
     }
+
     return null;
   }
 
   int contar(String estado) {
-    if (estado == 'Pendiente') return cantidadPendientes;
     return incidencias.where((x) => x.estado == estado).length;
   }
 
@@ -33,13 +49,25 @@ class GestorIncidencias {
     for (var i = 0; i < incidencias.length; i++) {
       if (incidencias[i].id == id) {
         incidencias[i].estado = estado;
+        await datos.guardar(incidencias);
         break;
       }
     }
   }
 
-  Future<void> crear(String titulo, String descripcion, String cliente,
-      String categoria) async {
+  Future<void> cambiarPrioridad(String id, String prioridad) async {
+    for (final incidencia in incidencias) {
+      if (incidencia.id == id) {
+        incidencia.prioridad = prioridad;
+        await datos.guardar(incidencias);
+        break;
+      }
+    }
+  }
+
+  Future<void> crear(
+      String titulo, String descripcion, String cliente, String categoria,
+      {String prioridad = 'Media'}) async {
     final nuevo = Incidencia(
       id: 'INC-${DateTime.now().microsecondsSinceEpoch}',
       titulo: titulo,
@@ -48,9 +76,10 @@ class GestorIncidencias {
       categoria: categoria,
       estado: 'Pendiente',
       fecha: DateTime.now().toIso8601String().split('T').first,
+      prioridad: prioridad,
     );
+
     incidencias.insert(0, nuevo);
-    cantidadPendientes++;
     await datos.guardar(incidencias);
   }
 

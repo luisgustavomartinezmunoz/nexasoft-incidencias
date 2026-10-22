@@ -1,10 +1,21 @@
 class Incidencia {
+  static const prioridadesPermitidas = ['Baja', 'Media', 'Alta'];
+
   String id;
   String titulo;
   String descripcion;
   String cliente;
   String categoria;
   String estado;
+  String _prioridad;
+  String get prioridad => _prioridad;
+  set prioridad(String valor) {
+    if (!prioridadesPermitidas.contains(valor)) {
+      throw ArgumentError.value(valor, 'prioridad', 'Prioridad no permitida');
+    }
+    _prioridad = valor;
+  }
+
   String fecha;
 
   Incidencia({
@@ -15,7 +26,15 @@ class Incidencia {
     required this.categoria,
     required this.estado,
     required this.fecha,
-  });
+    String prioridad = 'Media',
+  }) : _prioridad = _validarPrioridad(prioridad);
+
+  static String _validarPrioridad(String valor) {
+    if (!prioridadesPermitidas.contains(valor)) {
+      throw ArgumentError.value(valor, 'prioridad', 'Prioridad no permitida');
+    }
+    return valor;
+  }
 
   factory Incidencia.desdeJson(Map<String, dynamic> m) {
     return Incidencia(
@@ -26,6 +45,9 @@ class Incidencia {
       categoria: m['categoria']?.toString() ?? 'Software',
       estado: m['estado']?.toString() ?? 'Pendiente',
       fecha: m['fecha']?.toString() ?? '',
+      prioridad: prioridadesPermitidas.contains(m['prioridad'])
+          ? m['prioridad'] as String
+          : 'Media',
     );
   }
 
@@ -37,6 +59,7 @@ class Incidencia {
       'cliente': cliente,
       'categoria': categoria,
       'estado': estado,
+      'prioridad': prioridad,
       'fecha': fecha,
     };
   }
